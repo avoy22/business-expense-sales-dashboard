@@ -1,14 +1,26 @@
 import { useRef, useState } from "react";
-import { UploadCloud, FileSpreadsheet, X, Loader2 } from "lucide-react";
+import {
+  UploadCloud,
+  FileSpreadsheet,
+  X,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
 
 const ACCEPTED = ".csv,.xlsx,.xls";
 const ACCEPTED_EXT = ["csv", "xlsx", "xls"];
+const MAX_FILE_BYTES = 25 * 1024 * 1024; // 25 MB soft limit
 
 function extOf(name) {
   return (name?.split(".").pop() || "").toLowerCase();
 }
 
-export default function FileUpload({ onAnalyze, isLoading, error }) {
+export default function FileUpload({
+  onAnalyze,
+  onUseSampleData,
+  isLoading,
+  error,
+}) {
   const inputRef = useRef(null);
   const [file, setFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
@@ -19,6 +31,10 @@ export default function FileUpload({ onAnalyze, isLoading, error }) {
     if (!f) return;
     if (!ACCEPTED_EXT.includes(extOf(f.name))) {
       setLocalError("Unsupported file type. Please upload CSV, XLSX, or XLS.");
+      return;
+    }
+    if (f.size > MAX_FILE_BYTES) {
+      setLocalError("That file is larger than 25 MB. Try a smaller export.");
       return;
     }
     setFile(f);
@@ -78,7 +94,7 @@ export default function FileUpload({ onAnalyze, isLoading, error }) {
             browse
           </span>
         </p>
-        <p className="mt-1 text-xs text-ink-500">CSV, XLSX, XLS up to ~25 MB</p>
+        <p className="mt-1 text-xs text-ink-500">CSV, XLSX, XLS up to 25 MB</p>
         <input
           ref={inputRef}
           id="business-file"
@@ -115,7 +131,10 @@ export default function FileUpload({ onAnalyze, isLoading, error }) {
       )}
 
       {displayError && (
-        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div
+          role="alert"
+          className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
           {displayError}
         </div>
       )}
@@ -135,6 +154,25 @@ export default function FileUpload({ onAnalyze, isLoading, error }) {
           <>Analyze data</>
         )}
       </button>
+
+      <div className="mt-4 flex items-center gap-3 text-xs text-ink-400">
+        <span className="h-px flex-1 bg-ink-200" />
+        <span>or</span>
+        <span className="h-px flex-1 bg-ink-200" />
+      </div>
+
+      <button
+        type="button"
+        onClick={onUseSampleData}
+        disabled={isLoading}
+        className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm font-medium text-ink-800 shadow-sm transition hover:border-brand-300 hover:bg-brand-50 hover:text-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <Sparkles className="h-4 w-4 text-brand-600" />
+        Try sample data
+      </button>
+      <p className="mt-2 text-center text-[11px] text-ink-400">
+        No upload needed — we'll send a tiny demo CSV to the API.
+      </p>
     </div>
   );
 }

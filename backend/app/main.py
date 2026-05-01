@@ -137,7 +137,7 @@ async def analyze_file(file: UploadFile = File(...)) -> JSONResponse:
 
     # Clean.
     try:
-        cleaned_df = clean_business_data(raw_df)
+        cleaned_df, cleaning_stats = clean_business_data(raw_df)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -170,6 +170,11 @@ async def analyze_file(file: UploadFile = File(...)) -> JSONResponse:
             detail=f"Failed to generate report files: {exc}",
         ) from exc
 
+    data_quality = {
+        **cleaning_stats,
+        "export_ready": True,
+    }
+
     response = {
         "file_id": file_id,
         "summary": analysis["summary"],
@@ -177,6 +182,7 @@ async def analyze_file(file: UploadFile = File(...)) -> JSONResponse:
         "top_products": analysis["top_products"],
         "category_breakdown": analysis["category_breakdown"],
         "preview_rows": analysis["preview_rows"],
+        "data_quality": data_quality,
         "download_excel_url": f"/api/download/excel/{file_id}",
         "download_pdf_url": f"/api/download/pdf/{file_id}",
     }

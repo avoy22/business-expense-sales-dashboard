@@ -74,9 +74,12 @@ def _normalize_header(name: str) -> str:
 
 # ---------- main entry point ----------
 
-def clean_business_data(df: pd.DataFrame) -> pd.DataFrame:
+def clean_business_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     """
     Clean and normalize a business-data DataFrame.
+
+    Returns a tuple of (cleaned_df, stats) where `stats` reports a few
+    data-quality metrics the frontend can show to the user.
 
     Steps:
       1. Drop fully empty rows and exact duplicates.
@@ -95,8 +98,14 @@ def clean_business_data(df: pd.DataFrame) -> pd.DataFrame:
     if df is None or df.empty:
         raise ValueError("The uploaded file is empty.")
 
+    raw_rows = int(len(df))
+
     # 1. Drop fully empty rows and exact duplicates.
-    df = df.dropna(how="all").drop_duplicates().reset_index(drop=True)
+    after_empty = df.dropna(how="all")
+    deduped = after_empty.drop_duplicates().reset_index(drop=True)
+    duplicates_removed = int(len(after_empty) - len(deduped))
+    empty_rows_removed = int(raw_rows - len(after_empty))
+    df = deduped
     if df.empty:
         raise ValueError("The uploaded file has no data rows.")
 
@@ -119,15 +128,23 @@ def clean_business_data(df: pd.DataFrame) -> pd.DataFrame:
     # 5. Amount must exist and be numeric.
     if "amount" not in df.columns:
         raise ValueError("Could not find an amount column in the uploaded file.")
+    rows_before_amount = int(len(df))
     df["amount"] = df["amount"].apply(_to_amount)
 
     # Drop rows where amount could not be parsed.
     df = df[df["amount"].notna()].copy()
+    invalid_amounts_removed = int(rows_before_amount - len(df))
     if df.empty:
         raise ValueError("No rows with a valid amount were found.")
 
     # 6. Parse dates (keep NaT if unparseable).
     df["date"] = pd.to_datetime(df["date"], errors="coerce", dayfirst=False)
+
+    # Track how many rows were missing a category before we fill it in.
+    category_missing_mask = df["category"].isna() | (
+        df["category"].astype(str).str.strip() == ""
+    )
+    categories_filled = int(category_missing_mask.sum())
 
     # 7. Fill defaults for descriptive columns.
     df["product"] = df["product"].fillna("Unknown").astype(str).str.strip().replace("", "Unknown")
@@ -164,4 +181,13 @@ def clean_business_data(df: pd.DataFrame) -> pd.DataFrame:
     extras = [c for c in df.columns if c not in STANDARD_COLUMNS]
     df = df[STANDARD_COLUMNS + extras].reset_index(drop=True)
 
-    return df
+    stats = {
+        "raw_rows": raw_rows,
+        "cleaned_rows": int(len(df)),
+        "duplicates_removed": duplicates_removed,
+        "empty_rows_removed": empty_rows_removed,
+        "invalid_amounts_removed": invalid_amounts_removed,
+        "categories_filled": categories_filled,
+    }
+
+    return df, stats
