@@ -7,6 +7,11 @@ Built as a portfolio MVP to show how a small business or freelancer can turn
 their bookkeeping export into actionable insights — no manual cleanup, no
 formulas, no logins.
 
+## Live Demo
+
+Frontend: https://business-expense-sales-dashboard.vercel.app  
+Backend Health Check: https://business-expense-sales-dashboard.onrender.com/health
+
 ## Features
 
 - **Drag-and-drop CSV / XLSX / XLS upload** with size and type validation.
