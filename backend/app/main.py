@@ -46,8 +46,22 @@ app = FastAPI(
 )
 
 
-# CORS: local dev frontends + optional production origin from env var.
+def _normalize_origins(value: str | None) -> list[str]:
+    """Parse comma-separated origins, trimming spaces and trailing slashes."""
+    if not value:
+        return []
+
+    origins = []
+    for origin in value.split(","):
+        clean_origin = origin.strip().rstrip("/")
+        if clean_origin:
+            origins.append(clean_origin)
+    return origins
+
+
+# CORS: local dev frontends + production origins from code/env.
 allowed_origins = [
+    "https://business-expense-sales-dashboard.vercel.app",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://localhost:5174",
@@ -57,9 +71,8 @@ allowed_origins = [
     "http://localhost:5176",
     "http://127.0.0.1:5176",
 ]
-production_origin = os.getenv("FRONTEND_ORIGIN")
-if production_origin:
-    allowed_origins.append(production_origin)
+allowed_origins.extend(_normalize_origins(os.getenv("FRONTEND_ORIGIN")))
+allowed_origins = list(dict.fromkeys(allowed_origins))
 
 app.add_middleware(
     CORSMiddleware,
