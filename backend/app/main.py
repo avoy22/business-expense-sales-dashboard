@@ -78,14 +78,28 @@ ALLOWED_EXTENSIONS = {".csv", ".xlsx", ".xls"}
 def _read_uploaded_file(filename: str, content: bytes) -> pd.DataFrame:
     """Pick the right pandas reader based on file extension."""
     suffix = Path(filename).suffix.lower()
+    if not suffix:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Your file needs a .csv, .xlsx, or .xls extension. "
+                "Please rename it and try again."
+            ),
+        )
     if suffix not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported file type '{suffix}'. Please upload a CSV, XLSX, or XLS file.",
+            detail=(
+                f"Unsupported file type '{suffix}'. "
+                "Please upload a CSV (.csv), Excel (.xlsx), or legacy Excel (.xls) file."
+            ),
         )
 
     if not content:
-        raise HTTPException(status_code=400, detail="The uploaded file is empty.")
+        raise HTTPException(
+            status_code=400,
+            detail="The uploaded file is empty. Please choose a file that has data in it.",
+        )
 
     buffer = io.BytesIO(content)
     try:
@@ -104,7 +118,11 @@ def _read_uploaded_file(filename: str, content: bytes) -> pd.DataFrame:
     except Exception as exc:  # noqa: BLE001 — surfaced to the client below
         raise HTTPException(
             status_code=400,
-            detail=f"Could not read the uploaded file: {exc}",
+            detail=(
+                "Could not read the uploaded file. It may be corrupted, "
+                "password-protected, or saved in an unexpected format. "
+                "Please re-export the file and try again."
+            ),
         ) from exc
 
 

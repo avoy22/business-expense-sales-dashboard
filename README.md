@@ -32,6 +32,12 @@ formulas, no logins.
 | Backend  | FastAPI, Uvicorn, pandas, openpyxl, ReportLab                      |
 | Reports  | Excel (`openpyxl`) + PDF (`reportlab`) generated on each analysis   |
 
+## Screenshots
+
+Screenshots of the dashboard live in [`screenshots/`](screenshots/). Drop your
+own captures there (e.g. `dashboard.png`, `upload.png`) and embed them above
+the **Features** section once you have them.
+
 ## Project structure
 
 ```
@@ -52,7 +58,11 @@ business-expense-sales-dashboard/
 │   │   └── index.css       Tailwind v4 entry
 │   ├── .env.example
 │   └── package.json
-└── sample-data/            example messy spreadsheet for testing
+├── sample-data/            example messy spreadsheets for testing
+│   ├── messy-business-data.csv
+│   ├── ecommerce-sample.csv
+│   └── freelancer-income-expense.csv
+└── screenshots/            put dashboard screenshots here for the README
 ```
 
 ## Local setup
@@ -117,11 +127,57 @@ allow-list (the local Vite port is allowed by default).
 
 ### Sample data
 
-Two ways to try the app without your own file:
+Three ready-made CSVs live in [`sample-data/`](sample-data/):
 
-1. Click **"Try sample data"** in the upload panel — the UI sends a small
+| File                                    | Use case                                       |
+| --------------------------------------- | ---------------------------------------------- |
+| `messy-business-data.csv`               | Tiny demo with mixed currency formatting       |
+| `ecommerce-sample.csv`                  | E-commerce store: orders, ad spend, shipping   |
+| `freelancer-income-expense.csv`         | Freelancer: client invoices, software, office  |
+
+You have three ways to try the app without your own file:
+
+1. Click **"Try sample data"** in the upload panel — the UI ships a small
    built-in demo CSV to `/api/analyze`.
-2. Upload `sample-data/messy-business-data.csv` from this repo.
+2. Upload one of the files in `sample-data/` from the upload panel.
+3. POST a sample file directly to the API:
+   ```powershell
+   curl.exe -F "file=@sample-data/ecommerce-sample.csv" http://127.0.0.1:8000/api/analyze
+   ```
+
+## Test checklist
+
+Run through this list before shipping a build or recording a portfolio demo.
+
+**Backend smoke tests** (with the API running on port 8000):
+
+- [ ] `GET /health` returns `{"status":"ok"}`.
+- [ ] `POST /api/analyze` with `sample-data/messy-business-data.csv` returns
+      a JSON body that includes `summary`, `monthly_trend`,
+      `category_breakdown`, `top_products`, `preview_rows`, `data_quality`,
+      `download_excel_url`, and `download_pdf_url`.
+- [ ] `GET /api/download/excel/{file_id}` downloads a valid `.xlsx` file.
+- [ ] `GET /api/download/pdf/{file_id}` downloads a valid `.pdf` file.
+- [ ] `GET /api/download/excel/does-not-exist` returns a clean 404.
+- [ ] Uploading a `.txt` file returns a 400 with a friendly message.
+- [ ] Uploading an empty file returns a 400 with a friendly message.
+
+**Frontend smoke tests** (with both servers running):
+
+- [ ] Hero, "How it works", and the upload card all render on first load.
+- [ ] Clicking **Try sample data** populates the dashboard end-to-end:
+      summary cards, monthly trend chart, category donut, top products,
+      data quality card, and cleaned data preview.
+- [ ] Uploading `sample-data/ecommerce-sample.csv` shows duplicate rows
+      removed in the data quality card.
+- [ ] Uploading `sample-data/freelancer-income-expense.csv` shows missing
+      categories filled in the data quality card.
+- [ ] **Download Cleaned Excel** and **Download PDF Report** are disabled
+      before any analysis runs and become real download links after.
+- [ ] Stopping the backend and clicking **Try sample data** shows a friendly
+      "Cannot reach the backend" error card; restarting the backend lets a
+      retry succeed.
+- [ ] `npm run build` finishes without errors.
 
 ## Deployment plan
 
@@ -163,11 +219,18 @@ useful for monthly reviews, year-end summaries, or quick client reports.
 
 ## Future improvements
 
-- Multi-currency support and per-currency totals.
-- Save analyses to a lightweight SQLite store and let users compare months.
-- Optional AI-assisted categorization (kept out of the MVP on purpose).
-- More export formats (Google Sheets push, CSV-only download).
-- Auth + per-user history (only if a real customer needs it).
+Kept deliberately out of the MVP — only worth adding when a real user needs
+them:
+
+- **Multi-currency support** — detect currency per row and report totals per
+  currency.
+- **Persistent history** — a tiny SQLite store so a user can compare months
+  or re-open a previous analysis without re-uploading.
+- **CSV download** of the cleaned dataset (in addition to Excel + PDF).
+- **Date range filter** on the dashboard for users with large files.
+- **AI-assisted categorization** as an opt-in upgrade for messy descriptions
+  the keyword categorizer can't classify.
+- **Auth + per-user history** — only if there's a real customer asking.
 
 ## License
 

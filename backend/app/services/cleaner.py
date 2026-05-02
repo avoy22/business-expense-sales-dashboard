@@ -96,7 +96,9 @@ def clean_business_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
         amount column or no rows.
     """
     if df is None or df.empty:
-        raise ValueError("The uploaded file is empty.")
+        raise ValueError(
+            "The uploaded file is empty. Please choose a file that has data rows."
+        )
 
     raw_rows = int(len(df))
 
@@ -107,7 +109,10 @@ def clean_business_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     empty_rows_removed = int(raw_rows - len(after_empty))
     df = deduped
     if df.empty:
-        raise ValueError("The uploaded file has no data rows.")
+        raise ValueError(
+            "The file has headers but no data rows. "
+            "Add at least one row of transactions and try again."
+        )
 
     # 2. Normalize headers.
     df.columns = [_normalize_header(c) for c in df.columns]
@@ -127,7 +132,11 @@ def clean_business_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
 
     # 5. Amount must exist and be numeric.
     if "amount" not in df.columns:
-        raise ValueError("Could not find an amount column in the uploaded file.")
+        raise ValueError(
+            "Could not find a sales/amount column. "
+            "Please rename one of your columns to 'Amount', 'Total', "
+            "'Total Sales', 'Revenue', 'Price', or 'Cost' and try again."
+        )
     rows_before_amount = int(len(df))
     df["amount"] = df["amount"].apply(_to_amount)
 
@@ -135,7 +144,11 @@ def clean_business_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     df = df[df["amount"].notna()].copy()
     invalid_amounts_removed = int(rows_before_amount - len(df))
     if df.empty:
-        raise ValueError("No rows with a valid amount were found.")
+        raise ValueError(
+            "No rows had a valid amount. "
+            "Make sure the amount column contains numbers "
+            "(currency symbols and commas are OK, e.g. \"$1,200\")."
+        )
 
     # 6. Parse dates (keep NaT if unparseable).
     df["date"] = pd.to_datetime(df["date"], errors="coerce", dayfirst=False)
